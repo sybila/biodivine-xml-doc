@@ -1,3 +1,4 @@
 /target
 benches/target
 Cargo.lock
+.idea
