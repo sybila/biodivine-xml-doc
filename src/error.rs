@@ -1,5 +1,7 @@
 use quick_xml::Error as XMLError;
 use std::{str::Utf8Error, string::FromUtf8Error};
+use std::sync::Arc;
+use quick_xml::events::attributes::AttrError;
 
 /// Wrapper around `std::Result`
 pub type Result<T> = std::result::Result<T, Error>;
@@ -8,7 +10,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     /// [`std::io`] related error.
-    Io(std::io::Error),
+    Io(Arc<std::io::Error>),
     /// Decoding related error.
     /// Maybe the XML declaration has an encoding value that it doesn't recognize,
     /// or it doesn't match its actual encoding,
@@ -55,9 +57,15 @@ impl From<XMLError> for Error {
                 expected, found,
             )),
             XMLError::Io(err) => Error::Io(err),
-            XMLError::Utf8(_) => Error::CannotDecode,
+            XMLError::NonDecodable(_) => Error::CannotDecode,
             err => Error::MalformedXML(err.to_string()),
         }
+    }
+}
+
+impl From<AttrError> for Error {
+    fn from(err: AttrError) -> Self {
+        Error::MalformedXML(err.to_string())
     }
 }
 
@@ -74,6 +82,6 @@ impl From<Utf8Error> for Error {
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Error {
-        Error::Io(err)
+        Error::Io(Arc::new(err))
     }
 }

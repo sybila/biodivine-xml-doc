@@ -204,14 +204,14 @@ impl DocumentParser {
     }
 
     fn create_element(&mut self, parent: Element, ev: &BytesStart) -> Result<Element> {
-        let full_name = String::from_utf8(ev.name().to_vec())?;
+        let full_name = String::from_utf8(ev.name().into_inner().to_vec())?;
         let mut namespace_decls = HashMap::new();
         let mut attributes = HashMap::new();
         for attr in ev.attributes() {
             let mut attr = attr?;
             attr.value = Cow::Owned(normalize_space(&attr.value));
-            let key = String::from_utf8(attr.key.to_vec())?;
-            let value = String::from_utf8(attr.unescaped_value()?.to_vec())?;
+            let key = String::from_utf8(attr.key.into_inner().to_vec())?;
+            let value = String::from_utf8(attr.unescape_value()?.as_bytes().to_vec())?;
             if key == "xmlns" {
                 namespace_decls.insert(String::new(), value);
                 continue;
@@ -272,7 +272,7 @@ impl DocumentParser {
                 if ev.is_empty() {
                     return Ok(false);
                 }
-                let content = String::from_utf8(ev.unescaped()?.to_vec())?;
+                let content = ev.unescape()?.to_string();
                 let node = Node::Text(content);
                 let parent = *self
                     .element_stack
@@ -283,7 +283,8 @@ impl DocumentParser {
             }
             Event::DocType(ev) => {
                 // Event::DocType comes with one leading whitespace. Strip the whitespace.
-                let raw = ev.unescaped()?;
+                let content = ev.unescape()?;
+                let raw = content.as_bytes();
                 let content = if !raw.is_empty() && raw[0] == b' ' {
                     String::from_utf8(raw[1..].to_vec())?
                 } else {
@@ -298,7 +299,7 @@ impl DocumentParser {
                 Ok(false)
             }
             Event::Comment(ev) => {
-                let content = String::from_utf8(ev.escaped().to_vec())?;
+                let content = String::from_utf8(ev.to_vec())?;
                 let node = Node::Comment(content);
                 let parent = *self
                     .element_stack
@@ -308,7 +309,7 @@ impl DocumentParser {
                 Ok(false)
             }
             Event::CData(ev) => {
-                let content = String::from_utf8(ev.unescaped()?.to_vec())?;
+                let content = String::from_utf8(ev.to_vec())?;
                 let node = Node::CData(content);
                 let parent = *self
                     .element_stack
@@ -318,7 +319,7 @@ impl DocumentParser {
                 Ok(false)
             }
             Event::PI(ev) => {
-                let content = String::from_utf8(ev.escaped().to_vec())?;
+                let content = String::from_utf8(ev.to_vec())?;
                 let node = Node::PI(content);
                 let parent = *self
                     .element_stack
@@ -378,12 +379,12 @@ impl DocumentParser {
         let mut buf = Vec::with_capacity(200);
 
         // Skip first event if it only has whitespace
-        let event = match xmlreader.read_event(&mut buf)? {
+        let event = match xmlreader.read_event_into(&mut buf)? {
             Event::Text(ev) => {
                 if ev.len() == 0 {
-                    xmlreader.read_event(&mut buf)?
+                    xmlreader.read_event_into(&mut buf)?
                 } else if self.read_opts.ignore_whitespace_only && only_has_whitespace(&ev) {
-                    xmlreader.read_event(&mut buf)?
+                    xmlreader.read_event_into(&mut buf)?
                 } else {
                     Event::Text(ev)
                 }
@@ -397,7 +398,7 @@ impl DocumentParser {
             if self.encoding != init_encoding
                 && !(self.encoding == Some(UTF_16LE) && init_encoding == Some(UTF_16BE))
             {
-                let mut decode_reader = xmlreader.into_underlying_reader();
+                let mut decode_reader = xmlreader.into_inner();
                 decode_reader.set_encoding(self.encoding);
                 xmlreader = Reader::from_reader(decode_reader);
                 xmlreader.trim_text(self.read_opts.trim_text);
@@ -417,7 +418,7 @@ impl DocumentParser {
         let mut buf = Vec::with_capacity(200); // reduce time increasing capacity at start.
 
         loop {
-            let ev = reader.read_event(&mut buf)?;
+            let ev = reader.read_event_into(&mut buf)?;
 
             if self.handle_event(ev)? {
                 if self.element_stack.len() == 1 {

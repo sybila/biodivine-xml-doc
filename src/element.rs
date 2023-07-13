@@ -675,7 +675,7 @@ mod tests {
     #[test]
     fn test_namespace() {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
-        <root xmlns="ns", xmlns:p="pns">
+        <root xmlns="ns" xmlns:p="pns">
             <p:foo xmlns="inner">
                 Hello
             </p:foo>

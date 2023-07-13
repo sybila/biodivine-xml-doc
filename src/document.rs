@@ -1,7 +1,7 @@
 use crate::element::{Element, ElementData};
 use crate::error::{Error, Result};
 use crate::parser::{DocumentParser, ReadOptions};
-use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
+use quick_xml::events::{BytesCData, BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::Writer;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -266,12 +266,12 @@ impl Document {
 
     fn write_decl(&self, writer: &mut Writer<impl Write>) -> Result<()> {
         let standalone = match self.standalone {
-            true => Some("yes".as_bytes()),
+            true => Some("yes"),
             false => None,
         };
         writer.write_event(Event::Decl(BytesDecl::new(
-            self.version.as_bytes(),
-            Some("UTF-8".as_bytes()),
+            self.version.as_str(),
+            Some("UTF-8"),
             standalone,
         )))?;
         Ok(())
@@ -282,20 +282,20 @@ impl Document {
             match node {
                 Node::Element(eid) => self.write_element(writer, *eid)?,
                 Node::Text(text) => {
-                    writer.write_event(Event::Text(BytesText::from_plain_str(text)))?
+                    writer.write_event(Event::Text(BytesText::new(text)))?
                 }
-                Node::DocType(text) => writer.write_event(Event::DocType(
-                    BytesText::from_plain_str(&format!(" {}", text)), // add a whitespace before text
-                ))?,
+                Node::DocType(text) => {
+                    writer.write_event(Event::DocType(BytesText::new(text)))?
+                }
                 // Comment, CData, and PI content is not escaped.
                 Node::Comment(text) => {
-                    writer.write_event(Event::Comment(BytesText::from_escaped_str(text)))?
+                    writer.write_event(Event::Comment(BytesText::from_escaped(text)))?
                 }
                 Node::CData(text) => {
-                    writer.write_event(Event::CData(BytesText::from_escaped_str(text)))?
+                    writer.write_event(Event::CData(BytesCData::new(text)))?
                 }
                 Node::PI(text) => {
-                    writer.write_event(Event::PI(BytesText::from_escaped_str(text)))?
+                    writer.write_event(Event::PI(BytesText::from_escaped(text)))?
                 }
             };
         }
@@ -303,11 +303,10 @@ impl Document {
     }
 
     fn write_element(&self, writer: &mut Writer<impl Write>, element: Element) -> Result<()> {
-        let name_bytes = element.full_name(self).as_bytes();
-        let mut start = BytesStart::borrowed_name(name_bytes);
+        let name_str = element.full_name(self);
+        let mut start = BytesStart::new(name_str);
         for (key, val) in element.attributes(self) {
-            let val = quick_xml::escape::escape(val.as_bytes());
-            start.push_attribute((key.as_bytes(), &val[..]));
+            start.push_attribute((key.as_str(), val.as_str()));
         }
         for (prefix, val) in element.namespace_decls(self) {
             let attr_name = if prefix.is_empty() {
@@ -315,13 +314,12 @@ impl Document {
             } else {
                 format!("xmlns:{}", prefix)
             };
-            let val = quick_xml::escape::escape(val.as_bytes());
-            start.push_attribute((attr_name.as_bytes(), &val[..]));
+            start.push_attribute((attr_name.as_str(), val.as_str()));
         }
         if element.has_children(self) {
             writer.write_event(Event::Start(start))?;
             self.write_nodes(writer, element.children(self))?;
-            writer.write_event(Event::End(BytesEnd::borrowed(name_bytes)))?;
+            writer.write_event(Event::End(BytesEnd::new(name_str)))?;
         } else {
             writer.write_event(Event::Empty(start))?;
         }
