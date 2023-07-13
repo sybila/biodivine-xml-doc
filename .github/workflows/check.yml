@@ -1,23 +1,101 @@
 name: Check
-
+# This should ensure that the workflow won't run on `dev-*` branches, but will
+# otherwise execute on any other branch and any pull request (including from dev
+# branches).
 on:
   push:
-    branches: [master]
+    branches-ignore:
+      - 'dev-*'
   pull_request:
-    branches: [master]
+    branches:
+      - '*'
 
 env:
-  CARGO_TERM_COLOR: always
-
+  # A fixed version used for testing, so that the builds don't
+  # spontaneously break after a few years.
+  # Make sure to update this from time to time.
+  RUST_VERSION: "1.69.0"
 jobs:
-  check:
+  # Check formatting
+  fmt:
+    name: Rustfmt
     runs-on: ubuntu-latest
-
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt
+      - run: cargo fmt --all -- --check
 
-      - name: Build
-        run: cargo build --verbose
+  # Run basic code validity check.
+  check:
+    needs: fmt
+    name: Check
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - run: cargo check --all-features
 
-      - name: Run tests
-        run: cargo test --verbose
+  # Run all tests
+  test:
+    needs: check
+    name: Test Suite
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt
+      - run: cargo test --all-features
+
+  # Check code style
+  clippy:
+    needs: check
+    name: Clippy
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+      - run: cargo clippy --all-features
+
+  # Code coverage is disabled until we resolve the issue of potential ownership of xml-doc.
+  # Compute code coverage
+  #codecov:
+  #  needs: test
+  #  name: Code coverage
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - uses: dtolnay/rust-toolchain@stable
+  #      with:
+  #        toolchain: ${{ env.RUST_VERSION }}
+  #    # Install action using cargo-binstall, which is faster because we don't have to compile tarpaulin every time.
+  #    - uses: taiki-e/install-action@v2
+  #      with:
+  #        tool: cargo-tarpaulin
+  #    - run: cargo tarpaulin --verbose --lib --examples --all-features --out Xml
+  #    - name: Upload to codecov.io
+  #      uses: codecov/codecov-action@v3
+  #      with:
+  #        token: ${{ secrets.CODECOV_TOKEN }}
+  #    - name: Archive code coverage results
+  #      uses: actions/upload-artifact@v1
+  #      with:
+  #        name: code-coverage-report
+  #        path: cobertura.xml
