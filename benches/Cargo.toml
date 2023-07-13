@@ -5,17 +5,18 @@ edition = "2018"
 
 [dependencies]
 xml-doc = {path = "../"}
-minidom = "0.12"
-roxmltree = "0.14"
+# Newer versions of minidom fail to parse the test documents.
+minidom = "0.12.0"
+roxmltree = "0.18.0"
 xmltree = "0.10"
 xml_dom = ">=0.2.5" # avoid quick-xml version conflict
-criterion = "0.3"
+criterion = "0.5.1"
 # parsers
-xml5ever = "0.16"
-markup5ever = "0.10"
-quick-xml = "0.22"
-RustyXML = {version = "0.3", package = "RustyXML" }
-xml_rs = {version = "0.8", package = "xml-rs" }
+xml5ever = "0.17.0"
+markup5ever = "0.11.0"
+quick-xml = "0.29.0"
+RustyXML = {version = "0.3.0", package = "RustyXML" }
+xml_rs = {version = "0.8.15", package = "xml-rs" }
 
 [[bench]]
 name = "bench"

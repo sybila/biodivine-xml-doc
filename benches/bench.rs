@@ -21,8 +21,7 @@ bench!("large.xml", large_xmldoc, xmldoc_parse);
 bench!("medium_utf16.xml", utf16_xmldoc, xmldoc_parse);
 
 fn minidom_parse(path: &Path) {
-    let mut reader = minidom::quick_xml::Reader::from_file(path).unwrap();
-    let doc = minidom::Element::from_reader(&mut reader).unwrap();
+    let doc: minidom::Element = std::fs::read_to_string(path).unwrap().parse().unwrap();
     black_box(doc);
 }
 bench!("tiny.xml", tiny_minidom, minidom_parse);
@@ -93,9 +92,9 @@ fn quick_xml_parser(path: &Path) -> usize {
     let mut reader = quick_xml::Reader::from_file(path).unwrap();
     let mut buf = Vec::new();
     loop {
-        match reader.read_event(&mut buf) {
+        match reader.read_event_into(&mut buf) {
             Ok(quick_xml::events::Event::Start(tag)) | Ok(quick_xml::events::Event::Empty(tag)) => {
-                count += tag.name().splitn(1, |b| *b == b':').last().unwrap().len();
+                count += tag.name().local_name().into_inner().len();
                 for attr in tag.attributes() {
                     let attr = attr.unwrap();
                     count += attr.value.len();
