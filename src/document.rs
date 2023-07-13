@@ -281,22 +281,14 @@ impl Document {
         for node in nodes {
             match node {
                 Node::Element(eid) => self.write_element(writer, *eid)?,
-                Node::Text(text) => {
-                    writer.write_event(Event::Text(BytesText::new(text)))?
-                }
-                Node::DocType(text) => {
-                    writer.write_event(Event::DocType(BytesText::new(text)))?
-                }
+                Node::Text(text) => writer.write_event(Event::Text(BytesText::new(text)))?,
+                Node::DocType(text) => writer.write_event(Event::DocType(BytesText::new(text)))?,
                 // Comment, CData, and PI content is not escaped.
                 Node::Comment(text) => {
                     writer.write_event(Event::Comment(BytesText::from_escaped(text)))?
                 }
-                Node::CData(text) => {
-                    writer.write_event(Event::CData(BytesCData::new(text)))?
-                }
-                Node::PI(text) => {
-                    writer.write_event(Event::PI(BytesText::from_escaped(text)))?
-                }
+                Node::CData(text) => writer.write_event(Event::CData(BytesCData::new(text)))?,
+                Node::PI(text) => writer.write_event(Event::PI(BytesText::from_escaped(text)))?,
             };
         }
         Ok(())

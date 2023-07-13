@@ -1,7 +1,7 @@
-use quick_xml::Error as XMLError;
-use std::{str::Utf8Error, string::FromUtf8Error};
-use std::sync::Arc;
 use quick_xml::events::attributes::AttrError;
+use quick_xml::Error as XMLError;
+use std::sync::Arc;
+use std::{str::Utf8Error, string::FromUtf8Error};
 
 /// Wrapper around `std::Result`
 pub type Result<T> = std::result::Result<T, Error>;
