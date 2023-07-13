@@ -132,14 +132,13 @@ pub struct ReadOptions {
     pub require_decl: bool,
     /// If this is set, the parser will start reading with this encoding.
     /// But it will switch to XML declaration's encoding value if it has a different value.
-    /// See [`encoding_rs::Encoding::for_label`] for valid values.
+    /// See [`Encoding::for_label`] for valid values.
     /// Default: `None`
     pub encoding: Option<String>,
 }
 
-impl ReadOptions {
-    /// Create ReadOptions with default options.
-    pub fn default() -> ReadOptions {
+impl Default for ReadOptions {
+    fn default() -> Self {
         ReadOptions {
             empty_text_node: true,
             trim_text: true,
@@ -166,7 +165,7 @@ impl DocumentParser {
             doc,
             read_opts: opts,
             encoding: None,
-            element_stack: element_stack,
+            element_stack,
         };
         parser.parse_start(reader)?;
         Ok(parser.doc)
@@ -381,9 +380,12 @@ impl DocumentParser {
         // Skip first event if it only has whitespace
         let event = match xmlreader.read_event_into(&mut buf)? {
             Event::Text(ev) => {
-                if ev.len() == 0 {
-                    xmlreader.read_event_into(&mut buf)?
-                } else if self.read_opts.ignore_whitespace_only && only_has_whitespace(&ev) {
+                let should_ignore = {
+                    let is_empty = ev.len() == 0;
+                    let is_whitespace = only_has_whitespace(&ev);
+                    is_empty || (self.read_opts.ignore_whitespace_only && is_whitespace)
+                };
+                if should_ignore {
                     xmlreader.read_event_into(&mut buf)?
                 } else {
                     Event::Text(ev)
@@ -421,12 +423,12 @@ impl DocumentParser {
             let ev = reader.read_event_into(&mut buf)?;
 
             if self.handle_event(ev)? {
-                if self.element_stack.len() == 1 {
+                return if self.element_stack.len() == 1 {
                     // Should only have container remaining in element_stack
-                    return Ok(());
+                    Ok(())
                 } else {
-                    return Err(Error::MalformedXML("Closing tag not found.".to_string()));
-                }
+                    Err(Error::MalformedXML("Closing tag not found.".to_string()))
+                };
             }
         }
     }
@@ -434,10 +436,7 @@ impl DocumentParser {
 
 /// Returns true if byte is an XML whitespace character
 fn is_whitespace(byte: u8) -> bool {
-    match byte {
-        b'\r' | b'\n' | b'\t' | b' ' => true,
-        _ => false,
-    }
+    matches!(byte, b'\r' | b'\n' | b'\t' | b' ')
 }
 
 /// Returns true if bytes.len() == 0 or bytes only has a whitespace-like character.

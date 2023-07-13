@@ -115,6 +115,12 @@ pub struct Document {
     pub(crate) standalone: bool,
 }
 
+impl Default for Document {
+    fn default() -> Self {
+        Document::new()
+    }
+}
+
 impl Document {
     /// Create a blank new xml document.
     pub fn new() -> Document {
@@ -217,8 +223,8 @@ pub struct WriteOptions {
     pub write_decl: bool,
 }
 
-impl WriteOptions {
-    pub fn default() -> WriteOptions {
+impl Default for WriteOptions {
+    fn default() -> Self {
         WriteOptions {
             indent_char: b' ',
             indent_size: 2,

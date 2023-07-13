@@ -29,7 +29,7 @@ pub(crate) struct ElementData {
 ///     .attribute("id", "main")
 ///     .attribute("class", "main")
 ///     .finish(&mut doc);
-/// doc.push_root_node(root.as_node());
+/// doc.push_root_node(root.as_node()).unwrap();
 ///
 /// let name = Element::build("name")
 ///     .text_content("No Name")
@@ -53,7 +53,7 @@ pub struct ElementBuilder {
 impl ElementBuilder {
     fn new(full_name: String) -> ElementBuilder {
         ElementBuilder {
-            full_name: full_name,
+            full_name,
             attributes: HashMap::new(),
             namespace_decls: HashMap::new(),
             text_content: None,
@@ -172,7 +172,7 @@ impl Element {
     ///     .attribute("class", "main")
     ///     .finish(&mut doc);
     ///
-    /// doc.push_root_node(elem.as_node());
+    /// doc.push_root_node(elem.as_node()).unwrap();
     /// ```
     pub fn build<S: Into<String>>(name: S) -> ElementBuilder {
         ElementBuilder::new(name.into())
@@ -226,7 +226,7 @@ impl Element {
     ///
     /// The first str is `""` if `full_name` has no prefix.
     pub fn separate_prefix_name(full_name: &str) -> (&str, &str) {
-        match full_name.split_once(":") {
+        match full_name.split_once(':') {
             Some((prefix, name)) => (prefix, name),
             None => ("", full_name),
         }
