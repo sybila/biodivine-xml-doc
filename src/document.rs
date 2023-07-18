@@ -3,8 +3,10 @@ use crate::error::{Error, Result};
 use crate::parser::{DocumentParser, ReadOptions};
 use quick_xml::events::{BytesCData, BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::Writer;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::iter::FromIterator;
 use std::path::Path;
 use std::str::FromStr;
 
@@ -303,10 +305,13 @@ impl Document {
     fn write_element(&self, writer: &mut Writer<impl Write>, element: Element) -> Result<()> {
         let name_str = element.full_name(self);
         let mut start = BytesStart::new(name_str);
-        for (key, val) in element.attributes(self) {
+        // The copy in BTreeMap ensures that we have a deterministic iteration order.
+        let attributes = BTreeMap::from_iter(element.attributes(self).iter());
+        for (key, val) in attributes {
             start.push_attribute((key.as_str(), val.as_str()));
         }
-        for (prefix, val) in element.namespace_decls(self) {
+        let namespaces = BTreeMap::from_iter(element.namespace_decls(self).iter());
+        for (prefix, val) in namespaces {
             let attr_name = if prefix.is_empty() {
                 "xmlns".to_string()
             } else {
