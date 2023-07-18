@@ -245,7 +245,7 @@ impl Document {
         self.write_file_with_opts(path, WriteOptions::default())
     }
     pub fn write_file_with_opts<P: AsRef<Path>>(&self, path: P, opts: WriteOptions) -> Result<()> {
-        let mut file = File::open(path)?;
+        let mut file = File::create(path)?;
         self.write_with_opts(&mut file, opts)
     }
 

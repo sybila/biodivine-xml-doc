@@ -28,3 +28,12 @@ fn test_escape() {
 
     assert_eq!(xml, expected);
 }
+
+#[test]
+fn test_write() {
+    let doc = Document::parse_file("tests/documents/doc.xml").unwrap();
+    doc.write_file("test_file.xml").unwrap();
+    let doc2 = Document::parse_file("test_file.xml").unwrap();
+    assert_eq!(doc.write_str().unwrap(), doc2.write_str().unwrap());
+    std::fs::remove_file("test_file.xml").unwrap();
+}
