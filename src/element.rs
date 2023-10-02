@@ -573,6 +573,22 @@ impl Element {
             .collect()
     }
 
+    /// A helper method that identifies child based on namespace if the namespace is
+    /// declared directly on this child.
+    fn has_self_declared_namespace(
+        &self,
+        doc: &Document,
+        prefix: &str,
+        namespace_url: &str,
+    ) -> bool {
+        let self_namespaces = self.namespace_decls(doc);
+        if let Some(namespace) = self_namespaces.get(prefix) {
+            namespace_url == namespace.as_str()
+        } else {
+            false
+        }
+    }
+
     /// Find the first direct child element with the given tag `name` belonging to the
     /// specified namespace (identified by a `namespace_url`).
     ///
@@ -603,6 +619,9 @@ impl Element {
                 continue;
             }
             if admissible_prefix.contains(child_prefix) {
+                return Some(child);
+            }
+            if child.has_self_declared_namespace(doc, child_prefix, namespace_url) {
                 return Some(child);
             }
         }
@@ -643,6 +662,9 @@ impl Element {
                 continue;
             }
             if admissible_prefix.contains(child_prefix) {
+                result.push(child);
+            }
+            if child.has_self_declared_namespace(doc, child_prefix, namespace_url) {
                 result.push(child);
             }
         }
