@@ -410,8 +410,7 @@ impl Element {
     ///
     /// See also the usage example in [Self::quantify_with_closest].
     pub fn is_quantified(&self, doc: &Document, namespace_url: &str) -> bool {
-        let prefixes = self.collect_namespace_prefixes(doc, namespace_url);
-        prefixes.contains(self.prefix(doc))
+        self.namespace(doc) == Some(namespace_url)
     }
 
     /// Ensure that this element belongs to the specified namespace using the *closest* prefix
