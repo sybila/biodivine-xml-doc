@@ -388,6 +388,9 @@ impl Element {
 
     /// Get namespace value given prefix, for this element.
     /// "xml" and "xmlns" returns its default namespace.
+    ///
+    /// This method can return an empty namespace, but only for an empty prefix assuming
+    /// there is no default namespace declared.
     pub fn namespace_for_prefix<'a>(&self, doc: &'a Document, prefix: &str) -> Option<&'a str> {
         match prefix {
             "xml" => return Some("http://www.w3.org/XML/1998/namespace"),
@@ -400,7 +403,13 @@ impl Element {
             if let Some(value) = data.namespace_decls.get(prefix) {
                 return Some(value);
             }
-            elem = elem.parent(doc)?;
+            if let Some(parent) = elem.parent(doc) {
+                elem = parent;
+            } else if prefix.is_empty() {
+                return Some("");
+            } else {
+                return None;
+            }
         }
     }
 
@@ -693,6 +702,11 @@ impl Element {
         }
 
         let mut result = HashSet::new();
+        if namespace_url.is_empty() {
+            // "no namespace" has by default an empty prefix, but this can be removed
+            // if a different namespace is found along the way.
+            result.insert("");
+        }
         recursion(doc, &mut result, self, namespace_url);
         result
     }
@@ -706,6 +720,10 @@ impl Element {
     /// If the "closest" element has multiple declarations of the namespace in question,
     /// the lexicographically first prefix is return (i.e. compared through standard
     /// string ordering).
+    ///
+    /// You can use empty namespace url to signify "no namespace", in which case the method
+    /// can only return an empty prefix, but it can also return `None` if there is a default
+    /// namespace which prevents you from having "no namespace" on this element.
     ///
     /// ```rust
     /// use xml_doc::Document;
@@ -744,6 +762,8 @@ impl Element {
             }
             if let Some(parent) = search.parent(doc) {
                 search = parent;
+            } else if namespace_url.is_empty() {
+                return Some("");
             } else {
                 return None;
             }
