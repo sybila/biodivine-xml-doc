@@ -726,7 +726,7 @@ impl Element {
     /// ```
     ///
     pub fn closest_prefix<'a>(&self, doc: &'a Document, namespace_url: &str) -> Option<&'a str> {
-        let mut search = self.clone();
+        let mut search = *self;
         loop {
             let mut candidate: Option<&str> = None;
             for (prefix, url) in search.namespace_decls(doc) {
