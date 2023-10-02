@@ -404,6 +404,59 @@ impl Element {
         }
     }
 
+    /// Returns `true` if this element is quantified by the given `namespace_url`. That is,
+    /// either its prefix resolves to this namespace, or this is the default
+    /// namespace in this context.
+    ///
+    /// See also the usage example in [Self::quantify_with_closest].
+    pub fn is_quantified(&self, doc: &Document, namespace_url: &str) -> bool {
+        let prefixes = self.collect_namespace_prefixes(doc, namespace_url);
+        prefixes.contains(self.prefix(doc))
+    }
+
+    /// Ensure that this element belongs to the specified namespace using the *closest* prefix
+    /// which corresponds to the given `namespace_url`.
+    ///
+    /// If the namespace is not declared for this element, returns `None`, otherwise returns
+    /// the new prefix. As such, `None` actually represents an error and must be consumed.
+    ///
+    /// See [Self::closest_prefix] for the definitions of which prefix will be used.
+    ///
+    /// ```rust
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
+    ///     <child xmlns:ns="http://ns2" />
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let child = root.child_elements(&doc)[0];
+    ///
+    /// // Everybody is already quantified with ns1, since it is the default namespace.
+    ///
+    /// assert!(child.is_quantified(&doc, "http://ns1"));
+    /// assert!(!root.is_quantified(&doc, "http://ns2"));
+    ///
+    /// assert_eq!(child.quantify_with_closest(&mut doc, "http://ns1"), Some("".to_string()));
+    /// assert_eq!(root.quantify_with_closest(&mut doc, "http://ns2"), Some("ns2".to_string()));
+    ///
+    /// assert!(child.is_quantified(&doc, "http://ns1"));
+    /// assert!(root.is_quantified(&doc, "http://ns2"));
+    /// ```
+    #[must_use]
+    pub fn quantify_with_closest(&self, doc: &mut Document, namespace_url: &str) -> Option<String> {
+        let prefix = self.closest_prefix(doc, namespace_url);
+        if let Some(prefix) = prefix {
+            let prefix = prefix.to_string();
+            self.set_prefix(doc, prefix.as_str());
+            Some(prefix)
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn build_text_content<'a>(&self, doc: &'a Document, buf: &'a mut String) {
         for child in self.children(doc) {
             child.build_text_content(doc, buf);
