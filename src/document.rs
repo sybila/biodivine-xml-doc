@@ -30,7 +30,7 @@ pub enum Node {
 impl Node {
     /// Useful to use inside `filter_map`.
     ///
-    /// ```
+    /// ```rust
     /// use xml_doc::{Document, Element};
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -85,7 +85,7 @@ impl Node {
 /// To write the document, use [write_*](`Document#writing`) methods.
 ///
 /// # Examples
-/// ```
+/// ```rust
 /// use xml_doc::Document;
 ///
 /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>

@@ -1,6 +1,6 @@
 use crate::document::{Document, Node};
 use crate::error::{Error, Result};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub(crate) struct ElementData {
@@ -503,13 +503,199 @@ impl Element {
             .find(|e| e.name(doc) == name)
     }
 
-    /// Find all direct child element with name `name`.
+    /// Find all direct child elements with name `name`.
     pub fn find_all(&self, doc: &Document, name: &str) -> Vec<Element> {
         self.children(doc)
             .iter()
             .filter_map(|n| n.as_element())
             .filter(|e| e.name(doc) == name)
             .collect()
+    }
+
+    /// Find the first direct child element with the given tag `name` belonging to the
+    /// specified namespace (identified by a `namespace_url`).
+    ///
+    /// ```rust
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
+    ///     <ns2:child id="1"/>
+    ///     <ns1:child id="2"/>
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let child = root.find_quantified(&doc, "child", "http://ns1").unwrap();
+    /// assert_eq!(child.attribute(&doc, "id"), Some("2"));
+    /// ```
+    pub fn find_quantified(
+        &self,
+        doc: &Document,
+        name: &str,
+        namespace_url: &str,
+    ) -> Option<Element> {
+        let admissible_prefix = self.collect_namespace_prefixes(doc, namespace_url);
+        for child in self.child_elements(doc) {
+            let (child_prefix, child_name) = child.prefix_name(doc);
+            if name != child_name {
+                continue;
+            }
+            if admissible_prefix.contains(child_prefix) {
+                return Some(child);
+            }
+        }
+        None
+    }
+
+    /// Find *all* the direct child elements with the given tag `name` belonging to the
+    /// specified namespace (identified by a `namespace_url`).
+    ///
+    /// ```rust
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
+    ///     <ns2:child id="1" />
+    ///     <child id="2" />
+    ///     <ns1:child id="3" />
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let children = root.find_all_quantified(&doc, "child", "http://ns1");
+    /// assert_eq!(children.len(), 2);
+    /// assert_eq!(children[0].attribute(&doc, "id"), Some("2"));
+    /// assert_eq!(children[1].attribute(&doc, "id"), Some("3"));
+    /// ```
+    pub fn find_all_quantified(
+        &self,
+        doc: &Document,
+        name: &str,
+        namespace_url: &str,
+    ) -> Vec<Element> {
+        let mut result = Vec::new();
+        let admissible_prefix = self.collect_namespace_prefixes(doc, namespace_url);
+        for child in self.child_elements(doc) {
+            let (child_prefix, child_name) = child.prefix_name(doc);
+            if name != child_name {
+                continue;
+            }
+            if admissible_prefix.contains(child_prefix) {
+                result.push(child);
+            }
+        }
+        result
+    }
+
+    /// Compute all namespace prefixes that are valid for the given `namespace_url` in the context
+    /// of *this* XML element.
+    ///
+    /// The default prefix is represented as an empty string slice.
+    ///
+    /// ```rust
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns1">
+    ///     <child xmlns:ns2="http://ns2" />
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let child = root.child_elements(&doc)[0];
+    /// // Three prefixes: `default`, `ns1`, and `ns2`
+    /// assert_eq!(root.collect_namespace_prefixes(&doc, "http://ns1").len(), 3);
+    /// // Only two prefixes. `ns2` is overridden.
+    /// assert_eq!(child.collect_namespace_prefixes(&doc, "http://ns1").len(), 2);
+    /// ```
+    pub fn collect_namespace_prefixes<'a>(
+        &self,
+        doc: &'a Document,
+        namespace_url: &str,
+    ) -> HashSet<&'a str> {
+        /// The idea is that we first go all the way to the root element,
+        /// and then as we are returning from the recursion, we are adding prefix "candidates".
+        /// However, at the same time, we are removing candidates which are overwritten
+        /// by another prefix lower on the path.
+        fn recursion<'a>(
+            document: &'a Document,
+            valid_prefixes: &mut HashSet<&'a str>,
+            element: &Element,
+            namespace_url: &str,
+        ) {
+            if let Some(parent) = element.parent(document) {
+                recursion(document, valid_prefixes, &parent, namespace_url);
+            }
+            // At this point, `valid_prefixes` contains all prefixes that are declared in
+            // some of our parents for the requested URL. As such, we can go through the
+            // declarations in this tag and add new prefix if it is valid, or remove prefix
+            // if it is overwritten by a different url.
+            for (prefix, namespace) in element.namespace_decls(document) {
+                if namespace.as_str() == namespace_url {
+                    valid_prefixes.insert(prefix);
+                } else if valid_prefixes.contains(prefix.as_str()) {
+                    valid_prefixes.remove(prefix.as_str());
+                }
+            }
+        }
+
+        let mut result = HashSet::new();
+        recursion(doc, &mut result, self, namespace_url);
+        result
+    }
+
+    /// Find the "closest" namespace prefix which is associated with the given `namespace_url`.
+    ///
+    /// If the namespace is declared on the element itself, then its prefix is returned.
+    /// Otherwise, the closest parent with the declared namespace is found and this prefix
+    /// is returned. If the namespace is not declared for this element, `None` is returned.
+    ///
+    /// If the "closest" element has multiple declarations of the namespace in question,
+    /// the lexicographically first prefix is return (i.e. compared through standard
+    /// string ordering).
+    ///
+    /// ```rust
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
+    ///     <child xmlns:ns="http://ns2" />
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let child = root.child_elements(&doc)[0];
+    /// assert_eq!(root.closest_prefix(&doc, "http://ns1"), Some(""));
+    /// assert_eq!(root.closest_prefix(&doc, "http://ns2"), Some("ns2"));
+    /// assert_eq!(child.closest_prefix(&doc, "http://ns1"), Some(""));
+    /// assert_eq!(child.closest_prefix(&doc, "http://ns2"), Some("ns"));
+    /// ```
+    ///
+    pub fn closest_prefix<'a>(&self, doc: &'a Document, namespace_url: &str) -> Option<&'a str> {
+        let mut search = self.clone();
+        loop {
+            let mut candidate: Option<&str> = None;
+            for (prefix, url) in search.namespace_decls(doc) {
+                if url == namespace_url {
+                    if let Some(current) = candidate {
+                        if prefix.as_str() < current {
+                            candidate = Some(prefix);
+                        }
+                    } else {
+                        candidate = Some(prefix);
+                    }
+                }
+            }
+            if candidate.is_some() {
+                return candidate;
+            }
+            if let Some(parent) = search.parent(doc) {
+                search = parent;
+            } else {
+                return None;
+            }
+        }
     }
 }
 
