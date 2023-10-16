@@ -754,7 +754,7 @@ impl Element {
     ///
     /// let root = doc.root_element().unwrap();
     /// let child = root.child_elements(&doc)[0];
-    /// let declarations = child.collect_external_namespace_decl(&doc);
+    /// let declarations = child.collect_external_namespace_decls(&doc);
     /// // The result should contain "" and "ns1". "ns2" is-redeclared on child, so is not needed.
     /// let expected = HashMap::from([
     ///     ("".to_string(), "http://ns1".to_string()),
@@ -763,7 +763,7 @@ impl Element {
     /// assert_eq!(declarations.len(), 2);
     /// assert_eq!(declarations, expected);
     /// ```
-    pub fn collect_external_namespace_decl(&self, doc: &Document) -> HashMap<String, String> {
+    pub fn collect_external_namespace_decls(&self, doc: &Document) -> HashMap<String, String> {
         /// Collect all prefixes within the element subtree that are not declared
         /// within the sub-tree itself.
         fn collect_prefixes<'a>(
