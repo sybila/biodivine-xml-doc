@@ -733,6 +733,49 @@ impl Element {
         result
     }
 
+    /// Collect namespace declarations which apply to this XML `Element`.
+    ///
+    /// The result contains the empty prefix only if it is declared with a non-empty namespace url.
+    ///
+    /// ```rust
+    /// use std::collections::HashMap;
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns1">
+    ///     <child xmlns:ns2="http://ns2">
+    ///         <ns1:child/>
+    ///         <ns2:child/>
+    ///     </child>
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let child = root.child_elements(&doc)[0];
+    /// let declarations = child.collect_applicable_namespace_decls(&doc);
+    /// // The result should contain "" and "ns1". "ns2" is-redeclared on child, so is not needed.
+    /// let expected = HashMap::from([
+    ///     ("ns2".to_string(), "http://ns2".to_string()),
+    ///     ("ns1".to_string(), "http://ns1".to_string()),
+    ///     ("".to_string(), "http://ns1".to_string())
+    /// ]);
+    /// assert_eq!(declarations.len(), 3);
+    /// assert_eq!(declarations, expected);
+    /// ```
+    pub fn collect_applicable_namespace_decls(&self, doc: &Document) -> HashMap<String, String> {
+        let mut e = *self;
+        let mut result = e.namespace_decls(doc).clone();
+        while let Some(parent) = e.parent(doc) {
+            e = parent;
+            for (prefix, url) in e.namespace_decls(doc) {
+                if !result.contains_key(prefix) {
+                    result.insert(prefix.clone(), url.clone());
+                }
+            }
+        }
+        result
+    }
+
     /// Collect "parent" namespace declarations which apply to the XML sub-tree of this `Element`.
     ///
     /// "Parent" declarations are those which appear on one of the parent tags of `Element`,
