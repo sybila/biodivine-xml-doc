@@ -795,6 +795,10 @@ impl Element {
     /// not in the `Element` sub-tree. Each namespace prefix resolves to a specific URL based
     /// on standard XML namespace shadowing rules.
     ///
+    /// Note that the method can return a combination of an empty prefix and an empty url
+    /// when the sub-tree contains elements with no prefix and there is no default namespace url
+    /// declared by the parents.
+    ///
     /// ```rust
     /// use std::collections::HashMap;
     /// use xml_doc::Document;
@@ -860,7 +864,7 @@ impl Element {
         let mut unknown = HashSet::new();
         collect_prefixes(self, doc, &known, &mut unknown);
 
-        let mut result = unknown
+        unknown
             .into_iter()
             .map(|prefix| {
                 let Some(namespace) = self.namespace_for_prefix(doc, prefix) else {
@@ -868,17 +872,7 @@ impl Element {
                 };
                 (prefix.to_string(), namespace.to_string())
             })
-            .collect::<HashMap<_, _>>();
-
-        // If the empty prefix maps to the empty namespace, remove it (this is the default
-        // option that does not need to be returned).
-        result.retain(|prefix, namespace| {
-            // If prefix is not empty, then namespace must not be empty as well.
-            assert!(prefix.is_empty() || !namespace.is_empty());
-            !prefix.is_empty() || !namespace.is_empty()
-        });
-
-        result
+            .collect::<HashMap<_, _>>()
     }
 
     /// Find the "closest" namespace prefix which is associated with the given `namespace_url`.
