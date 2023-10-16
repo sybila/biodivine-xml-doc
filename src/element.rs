@@ -733,6 +733,98 @@ impl Element {
         result
     }
 
+    /// Collect "parent" namespace declarations which apply to the XML sub-tree of this `Element`.
+    ///
+    /// "Parent" declarations are those which appear on one of the parent tags of `Element`,
+    /// not in the `Element` sub-tree. Each namespace prefix resolves to a specific URL based
+    /// on standard XML namespace shadowing rules.
+    ///
+    /// ```rust
+    /// use std::collections::HashMap;
+    /// use xml_doc::Document;
+    ///
+    /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+    /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns1">
+    ///     <child xmlns:ns2="http://ns2">
+    ///         <ns1:child/>
+    ///         <ns2:child/>
+    ///     </child>
+    /// </parent>
+    /// "#).unwrap();
+    ///
+    /// let root = doc.root_element().unwrap();
+    /// let child = root.child_elements(&doc)[0];
+    /// let declarations = child.collect_external_namespace_decl(&doc);
+    /// // The result should contain "" and "ns1". "ns2" is-redeclared on child, so is not needed.
+    /// let expected = HashMap::from([
+    ///     ("".to_string(), "http://ns1".to_string()),
+    ///     ("ns1".to_string(), "http://ns1".to_string())
+    /// ]);
+    /// assert_eq!(declarations.len(), 2);
+    /// assert_eq!(declarations, expected);
+    /// ```
+    pub fn collect_external_namespace_decl(&self, doc: &Document) -> HashMap<String, String> {
+        /// Collect all prefixes within the element subtree that are not declared
+        /// within the sub-tree itself.
+        fn collect_prefixes<'a>(
+            e: &Element,
+            doc: &'a Document,
+            known_prefixes: &HashSet<&'a str>,
+            unknown_prefixes: &mut HashSet<&'a str>,
+        ) {
+            let my_declarations = e.namespace_decls(doc);
+            if my_declarations.is_empty() {
+                // This element has no namespace declarations, hence we just check it and continue
+                // recursively to the child elements.
+                let my_prefix = e.prefix(doc);
+                if !known_prefixes.contains(my_prefix) {
+                    unknown_prefixes.insert(my_prefix);
+                }
+                for child in e.child_elements(doc) {
+                    collect_prefixes(&child, doc, known_prefixes, unknown_prefixes);
+                }
+            } else {
+                // This element actually has declarations, so we need to copy the existing prefix
+                // map and update it with new values.
+                let mut my_known_prefixes = known_prefixes.clone();
+                for prefix in my_declarations.keys() {
+                    my_known_prefixes.insert(prefix.as_str());
+                }
+                let my_prefix = e.prefix(doc);
+                if !known_prefixes.contains(my_prefix) {
+                    unknown_prefixes.insert(my_prefix);
+                }
+                for child in e.child_elements(doc) {
+                    collect_prefixes(&child, doc, &my_known_prefixes, unknown_prefixes);
+                }
+            }
+        }
+
+        let known = HashSet::new();
+        let mut unknown = HashSet::new();
+        collect_prefixes(self, doc, &known, &mut unknown);
+
+        let mut result = unknown
+            .into_iter()
+            .map(|prefix| {
+                let Some(namespace) = self.namespace_for_prefix(doc, prefix) else {
+                    panic!("Invalid XML document. Prefix `{}` not declared.", prefix);
+                };
+                (prefix.to_string(), namespace.to_string())
+            })
+            .collect::<HashMap<_, _>>();
+
+        // If the empty prefix maps to the empty namespace, remove it (this is the default
+        // option that does not need to be returned).
+        result.retain(|prefix, namespace| {
+            // If prefix is not empty, then namespace must not be empty as well.
+            assert!(prefix.is_empty() || !namespace.is_empty());
+            !prefix.is_empty() || !namespace.is_empty()
+        });
+
+        result
+    }
+
     /// Find the "closest" namespace prefix which is associated with the given `namespace_url`.
     ///
     /// If the namespace is declared on the element itself, then its prefix is returned.
