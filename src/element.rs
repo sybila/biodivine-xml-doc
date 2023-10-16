@@ -250,6 +250,19 @@ impl Element {
         self.parent(doc).map_or(false, |p| p.is_container())
     }
 
+    /// Returns the "top" parent of this element. If the element is attached, the "top" parent
+    /// is the document root. Otherwise, the "top" parent is the root of the detached sub-tree.
+    pub fn top_parent(&self, doc: &Document) -> Element {
+        let mut e = *self;
+        while let Some(parent) = e.parent(doc) {
+            if parent.is_container() {
+                return e;
+            }
+            e = parent;
+        }
+        e
+    }
+
     /// Get full name of element, including its namespace prefix.
     /// Use [`Element::name()`] to get its name without the prefix.
     pub fn full_name<'a>(&self, doc: &'a Document) -> &'a str {
