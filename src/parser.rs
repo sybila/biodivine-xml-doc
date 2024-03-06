@@ -416,9 +416,20 @@ impl DocumentParser {
 
         if let Event::Decl(ev) = event {
             self.handle_decl(&ev)?;
-            if self.read_opts.enforce_encoding && self.encoding != requested_encoding {
+            if self.read_opts.enforce_encoding {
                 // User requested encoding X, but Y was actually found in the document declaration.
-                return Err(Error::CannotDecode);
+                // Note that if the declaration contains UTF-8, then self.encoding is actually
+                // `None`, so we have to account for that.
+                if requested_encoding.is_none() {
+                    return Err(Error::CannotDecode);
+                }
+                if requested_encoding == Some(UTF_8) {
+                    if self.encoding.is_some() {
+                        return Err(Error::CannotDecode);
+                    }
+                } else if self.encoding != requested_encoding {
+                    return Err(Error::CannotDecode);
+                }
             }
             // Encoding::for_label("UTF-16") defaults to UTF-16 LE, even though it could be UTF-16 BE
             if self.encoding != init_encoding

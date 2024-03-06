@@ -383,5 +383,24 @@ mod tests {
             Document::parse_str_with_opts(xml, opts.clone()),
             Err(Error::CannotDecode)
         ));
+
+        // Do a similar thing with a UTF document, because UTF gets special treatment in the
+        // library logic.
+        let xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><sbml level=\"3\" version=\"2\"></sbml>";
+        assert!(Document::parse_str(xml).is_ok());
+        let mut opts = ReadOptions::default();
+        opts.enforce_encoding = true;
+        assert!(matches!(
+            Document::parse_str_with_opts(xml, opts.clone()),
+            Err(Error::CannotDecode)
+        ));
+        opts.encoding = Some("US-ASCII".to_string());
+        assert!(matches!(
+            Document::parse_str_with_opts(xml, opts.clone()),
+            Err(Error::CannotDecode)
+        ));
+        opts.encoding = Some("UTF-8".to_string());
+        assert!(Document::parse_str_with_opts(xml, opts.clone()).is_ok());
     }
 }
