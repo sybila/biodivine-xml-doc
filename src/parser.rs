@@ -388,7 +388,12 @@ impl DocumentParser {
             .transpose()?;
 
         if requested_encoding.is_some() {
-            init_encoding = requested_encoding;
+            // If UTF is requested, the correct value to use is `None`, because UTF is the default.
+            if requested_encoding == Some(UTF_8) {
+                init_encoding = None;
+            } else {
+                init_encoding = requested_encoding;
+            }
         }
 
         decodereader.set_encoding(init_encoding);

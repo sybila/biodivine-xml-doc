@@ -365,7 +365,7 @@ mod tests {
     fn test_enforce_encoding() {
         // This document can be parsed without issues if we don't require a specific encoding,
         // but it is not UTF-8 and hence should fail if we specifically request UTF-8.
-        let xml = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><root></root>";
+        let xml = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><test></test>";
         assert!(Document::parse_str(xml).is_ok());
         let mut opts = ReadOptions::default();
         opts.enforce_encoding = true;
@@ -376,7 +376,8 @@ mod tests {
         ));
         // With the correct encoding, this should now work.
         opts.encoding = Some("US-ASCII".to_string());
-        assert!(Document::parse_str_with_opts(xml, opts.clone()).is_ok());
+        let doc = Document::parse_str_with_opts(xml, opts.clone()).unwrap();
+        assert_eq!(doc.root_element().unwrap().name(&doc), "test");
         // But with a different encoding, we should fail again.
         opts.encoding = Some("UTF-8".to_string());
         assert!(matches!(
@@ -386,8 +387,7 @@ mod tests {
 
         // Do a similar thing with a UTF document, because UTF gets special treatment in the
         // library logic.
-        let xml =
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><sbml level=\"3\" version=\"2\"></sbml>";
+        let xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><test></test>";
         assert!(Document::parse_str(xml).is_ok());
         let mut opts = ReadOptions::default();
         opts.enforce_encoding = true;
@@ -401,6 +401,7 @@ mod tests {
             Err(Error::CannotDecode)
         ));
         opts.encoding = Some("UTF-8".to_string());
-        assert!(Document::parse_str_with_opts(xml, opts.clone()).is_ok());
+        let doc = Document::parse_str_with_opts(xml, opts.clone()).unwrap();
+        assert_eq!(doc.root_element().unwrap().name(&doc), "test");
     }
 }
