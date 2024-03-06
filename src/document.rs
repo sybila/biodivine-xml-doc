@@ -165,7 +165,7 @@ impl Document {
 
     /// Get first root node that is an element.
     pub fn root_element(&self) -> Option<Element> {
-        self.container.child_elements(self).get(0).copied()
+        self.container.child_elements(self).first().copied()
     }
 
     /// Push a node to end of root nodes.
