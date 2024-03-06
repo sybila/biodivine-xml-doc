@@ -360,4 +360,28 @@ mod tests {
             basic.children(&doc).last().unwrap().as_element().unwrap()
         )
     }
+
+    #[test]
+    fn test_enforce_encoding() {
+        // This document can be parsed without issues if we don't require a specific encoding,
+        // but it is not UTF-8 and hence should fail if we specifically request UTF-8.
+        let xml = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><root></root>";
+        assert!(Document::parse_str(xml).is_ok());
+        let mut opts = ReadOptions::default();
+        opts.enforce_encoding = true;
+        // We have not specified any encoding, hence this should always fail.
+        assert!(matches!(
+            Document::parse_str_with_opts(xml, opts.clone()),
+            Err(Error::CannotDecode)
+        ));
+        // With the correct encoding, this should now work.
+        opts.encoding = Some("US-ASCII".to_string());
+        assert!(Document::parse_str_with_opts(xml, opts.clone()).is_ok());
+        // But with a different encoding, we should fail again.
+        opts.encoding = Some("UTF-8".to_string());
+        assert!(matches!(
+            Document::parse_str_with_opts(xml, opts.clone()),
+            Err(Error::CannotDecode)
+        ));
+    }
 }

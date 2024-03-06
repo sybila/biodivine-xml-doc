@@ -131,10 +131,21 @@ pub struct ReadOptions {
     /// Default: `true`
     pub require_decl: bool,
     /// If this is set, the parser will start reading with this encoding.
-    /// But it will switch to XML declaration's encoding value if it has a different value.
+    ///
+    /// If `enforce_encoding` is set to `false`, the parser will then switch to XML declaration's
+    /// encoding value if it has a different value.
+    ///
     /// See [`Encoding::for_label`] for valid values.
+    ///
     /// Default: `None`
     pub encoding: Option<String>,
+    /// If set to `true`, the parser will fail with [Error::CannotDecode] in case `encoding`
+    /// is specified and the declared encoding of the XML document is different.
+    ///
+    /// The parser will always fail if this is set to `true`, but no `encoding` is specified.
+    ///
+    /// Default: `false`
+    pub enforce_encoding: bool,
 }
 
 impl Default for ReadOptions {
@@ -145,6 +156,7 @@ impl Default for ReadOptions {
             ignore_whitespace_only: false,
             require_decl: true,
             encoding: None,
+            enforce_encoding: false,
         }
     }
 }
@@ -368,9 +380,17 @@ impl DocumentParser {
     fn parse_start<R: Read>(&mut self, reader: R) -> Result<()> {
         let mut decodereader = DecodeReader::new(reader, None);
         let mut init_encoding = self.sniff_encoding(&mut decodereader)?;
-        if let Some(enc) = &self.read_opts.encoding {
-            init_encoding = Some(Encoding::for_label(enc.as_bytes()).ok_or(Error::CannotDecode)?)
+        let requested_encoding = self
+            .read_opts
+            .encoding
+            .as_ref()
+            .map(|enc| Encoding::for_label(enc.as_bytes()).ok_or(Error::CannotDecode))
+            .transpose()?;
+
+        if requested_encoding.is_some() {
+            init_encoding = requested_encoding;
         }
+
         decodereader.set_encoding(init_encoding);
         let mut xmlreader = Reader::from_reader(decodereader);
         xmlreader.trim_text(self.read_opts.trim_text);
@@ -396,6 +416,10 @@ impl DocumentParser {
 
         if let Event::Decl(ev) = event {
             self.handle_decl(&ev)?;
+            if self.read_opts.enforce_encoding && self.encoding != requested_encoding {
+                // User requested encoding X, but Y was actually found in the document declaration.
+                return Err(Error::CannotDecode);
+            }
             // Encoding::for_label("UTF-16") defaults to UTF-16 LE, even though it could be UTF-16 BE
             if self.encoding != init_encoding
                 && !(self.encoding == Some(UTF_16LE) && init_encoding == Some(UTF_16BE))
