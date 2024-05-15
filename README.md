@@ -1,6 +1,8 @@
-# xml-doc
+# Biodivine/xml-doc
 
-xml-doc is a rust library to read, modify, and write XML documents. [Documentation](https://docs.rs/xml-doc/0.1.1/xml_doc/)
+ > This is a fork of the original [xml-doc](https://crates.io/crates/xml-doc) crate, which is now obsolete. It fixes some minor issues and introduces new APIs for easier manipulation of XML elements with namespaces. 
+
+xml-doc is a rust library to read, modify, and write XML documents. [Documentation](https://docs.rs/biodivine-xml-doc/)
 
 It's aim is to be able to read **any** xml files, and modify only the parts you want to.
 

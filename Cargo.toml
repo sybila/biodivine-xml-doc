@@ -1,21 +1,21 @@
 [package]
-name = "xml-doc"
-version = "0.2.0"
-authors = ["Yoonchae Lee <bluegreenmagick@gmail.com>"]
+name = "biodivine-xml-doc"
+version = "0.3.0"
+authors = ["Yoonchae Lee <bluegreenmagick@gmail.com>", "Samuel Pastva <sam.pastva@gmail.com>"]
 description = "Read, modify and write xml in tree-like structure. Supports UTF-16."
-edition = "2018"
-repository = "https://github.com/bluegreenmagick/xml-doc"
+edition = "2021"
+repository = "https://github.com/sybila/biodivine-xml-doc"
 license = "MIT OR Apache-2.0"
 keywords = ["xml", "parser", "reader", "writer"]
 categories = ["parser-implementations", "data-structures", "encoding"]
 autobenches = false
 
 [dependencies]
-quick-xml = "0.29.0"
+quick-xml = "0.31.0"
 encoding_rs = "0.8"
 
 [workspace]
 exclude = ["benches"]
 
 [dev-dependencies]
-itertools = "0.11.0"
+itertools = "0.12.0"
