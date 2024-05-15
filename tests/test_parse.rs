@@ -1,4 +1,4 @@
-use xml_doc::{Document, Error, Node, ReadOptions};
+use biodivine_xml_doc::{Document, Error, Node, ReadOptions};
 
 #[test]
 fn test_normalize_attr() {

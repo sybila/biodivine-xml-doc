@@ -20,7 +20,7 @@ If your project modifies multiple xml documents at the same time, this library m
 ## Example
 
 ```rust
-use xml_doc::{Document, Element};
+use biodivine_xml_doc::{Document, Element};
 
 let XML = r#"<?xml version="1.0"?>
 <package xmlns:dc="http://purl.org/dc/elements/1.1/">

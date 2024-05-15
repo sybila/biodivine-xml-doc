@@ -9,9 +9,9 @@
 //!
 //! # Example
 //! ```
-//! use xml_doc::{Document, Element, Node};
+//! use biodivine_xml_doc::{Document, Element, Node};
 //!
-//! const data: &'static str = r#"<?xml version="1.0" encoding="utf-8"?>
+//! const DATA: &'static str = r#"<?xml version="1.0" encoding="utf-8"?>
 //! <metadata>     
 //!     <title>The Felloship of the Ring</title>
 //!     <author>J. R. R. Tolkien</author>
@@ -19,7 +19,7 @@
 //! </metadata>
 //! "#;
 //!
-//! let mut doc = Document::parse_str(data).unwrap();
+//! let mut doc = Document::parse_str(DATA).unwrap();
 //! let metadata = doc.root_element().unwrap();
 //!
 //! // Add a new element
@@ -37,7 +37,7 @@
 //! Below example goes through the root element's children and removes all nodes that isn't `<conf>...</conf>`
 //! ```no_run
 //! use std::path::Path;
-//! use xml_doc::{Document, Node};
+//! use biodivine_xml_doc::{Document, Node};
 //!
 //! let xml_file = Path::new("config.xml");
 //! let mut doc = Document::parse_file(&xml_file).unwrap();
@@ -57,7 +57,8 @@
 //! for i in to_remove.iter().rev() {
 //!     root.remove_child(&mut doc, *i);
 //! }
-//! doc.write_file(&xml_file);
+//! doc.write_file(&xml_file)
+//!     .expect("Writing failed.");
 //! ```
 //!
 mod document;

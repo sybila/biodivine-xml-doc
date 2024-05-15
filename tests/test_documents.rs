@@ -1,10 +1,10 @@
+use biodivine_xml_doc::{Document, Element, Node, ReadOptions};
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Write;
 use std::path::Path;
 use std::str::FromStr;
-use xml_doc::{Document, Element, Node, ReadOptions};
 
 #[derive(Clone)]
 struct TStr(pub String);
@@ -146,11 +146,10 @@ fn test_write(doc: &Document) -> TStr {
     println!("{:?}", &written_xml);
     let new_doc = Document::from_str(&written_xml).unwrap();
     let result = TStr(to_yaml(&new_doc));
-    assert!(
-        expected == result,
+    assert_eq!(
+        expected, result,
         "\n===expected==={:?}\n===result==={:?}\nWRITING\n",
-        expected,
-        result,
+        expected, result
     );
     expected
 }
@@ -193,12 +192,10 @@ where
             }
         };
 
-        assert!(
-            expected == result,
+        assert_eq!(
+            expected, result,
             "\noptions: {:?}\n===expected==={:?}===result==={:?}\nREADING\n",
-            read_options,
-            expected,
-            result,
+            read_options, expected, result
         );
     }
     // Test write

@@ -21,7 +21,7 @@ pub(crate) struct ElementData {
 /// # Examples
 ///
 /// ```
-/// use xml_doc::{Document, Element, Node};
+/// use biodivine_xml_doc::{Document, Element, Node};
 ///
 /// let mut doc = Document::new();
 ///
@@ -126,7 +126,7 @@ impl ElementBuilder {
 ///
 /// Find children nodes with attribute
 /// ```
-/// use xml_doc::{Document, Element};
+/// use biodivine_xml_doc::{Document, Element};
 ///
 /// let doc = Document::parse_str(r#"<?xml version="1.0"?>
 /// <data>
@@ -163,7 +163,7 @@ impl Element {
     ///
     /// # Example
     /// ```
-    /// use xml_doc::{Document, Element, Node};
+    /// use biodivine_xml_doc::{Document, Element, Node};
     ///
     /// let mut doc = Document::new();
     ///
@@ -330,7 +330,7 @@ impl Element {
     ///
     /// The attribute names may have namespace prefix. To strip the prefix and only its name, call [`Element::separate_prefix_name`].
     /// ```
-    /// use xml_doc::{Document, Element};
+    /// use biodivine_xml_doc::{Document, Element};
     ///
     /// let mut doc = Document::new();
     /// let element = Element::build("name")
@@ -444,7 +444,7 @@ impl Element {
     /// See [Self::closest_prefix] for the definitions of which prefix will be used.
     ///
     /// ```rust
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
@@ -606,7 +606,7 @@ impl Element {
     /// specified namespace (identified by a `namespace_url`).
     ///
     /// ```rust
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
@@ -645,7 +645,7 @@ impl Element {
     /// specified namespace (identified by a `namespace_url`).
     ///
     /// ```rust
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">
@@ -690,7 +690,7 @@ impl Element {
     /// The default prefix is represented as an empty string slice.
     ///
     /// ```rust
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns1">
@@ -752,7 +752,7 @@ impl Element {
     ///
     /// ```rust
     /// use std::collections::HashMap;
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns1">
@@ -801,7 +801,7 @@ impl Element {
     ///
     /// ```rust
     /// use std::collections::HashMap;
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns1">
@@ -890,7 +890,7 @@ impl Element {
     /// namespace which prevents you from having "no namespace" on this element.
     ///
     /// ```rust
-    /// use xml_doc::Document;
+    /// use biodivine_xml_doc::Document;
     ///
     /// let mut doc = Document::parse_str(r#"<?xml version="1.0" encoding="UTF-8"?>
     /// <parent xmlns="http://ns1" xmlns:ns1="http://ns1" xmlns:ns2="http://ns2">

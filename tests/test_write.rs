@@ -1,4 +1,4 @@
-use xml_doc::{Document, Element, Node};
+use biodivine_xml_doc::{Document, Element, Node};
 
 #[test]
 fn test_escape() {
