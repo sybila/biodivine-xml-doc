@@ -1,6 +1,6 @@
 [package]
 name = "biodivine-xml-doc"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Yoonchae Lee <bluegreenmagick@gmail.com>", "Samuel Pastva <sam.pastva@gmail.com>"]
 description = "Read, modify and write xml in tree-like structure. Supports UTF-16."
 edition = "2021"
