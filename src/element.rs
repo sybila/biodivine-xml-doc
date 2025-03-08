@@ -66,7 +66,7 @@ impl ElementBuilder {
         if prefix.is_empty() {
             self.full_name = name.to_string();
         } else {
-            self.full_name = format!("{}{}", prefix, name);
+            self.full_name = format!("{}:{}", prefix, name);
         }
         self
     }
